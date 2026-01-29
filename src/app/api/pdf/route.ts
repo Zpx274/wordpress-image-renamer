@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // Use Claude to extract text from PDF
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-20250414',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 4096,
       messages: [
         {
