@@ -35,6 +35,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check file size (Vercel limit is 4.5MB on free tier)
+    const maxSize = 4.5 * 1024 * 1024; // 4.5MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { success: false, error: `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)}MB). Limite: 4.5MB` },
+        { status: 400 }
+      );
+    }
+
     if (!token && (!username || !appPassword)) {
       return NextResponse.json(
         { success: false, error: 'Authentification requise (token JWT ou username + appPassword)' },

@@ -209,7 +209,19 @@ export function BatchProcessor({ site }: BatchProcessorProps) {
           body: formData,
         });
 
-        const data = await response.json();
+        // Check if response is ok before parsing JSON
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText.slice(0, 100)}`);
+        }
+
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Invalid JSON: ${text.slice(0, 50)}...`);
+        }
 
         if (data.success) {
           updateImage(site.id, image.id, {
