@@ -362,34 +362,52 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {media.map((item) => {
                 const isSelected = selectedIds.has(item.id);
                 const hasGenerated = generatedData[item.id];
+                const hasTitle = item.title && item.title.trim() !== '';
+                const hasAlt = item.altText && item.altText.trim() !== '';
 
                 return (
                   <div
                     key={item.id}
-                    className={`relative aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
-                      isSelected ? 'border-primary ring-2 ring-primary/50' : 'border-transparent hover:border-muted-foreground/50'
+                    className={`rounded-lg border-2 cursor-pointer transition-all overflow-hidden ${
+                      isSelected ? 'border-primary ring-2 ring-primary/50' : 'border-muted hover:border-muted-foreground/50'
                     }`}
                     onClick={() => toggleSelect(item.id)}
                   >
-                    <img
-                      src={item.thumbnail}
-                      alt={item.altText || item.title}
-                      className="w-full h-full object-cover"
-                    />
-                    {isSelected && (
-                      <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                        ✓
+                    <div className="relative aspect-square">
+                      <img
+                        src={item.thumbnail}
+                        alt={item.altText || item.title}
+                        className="w-full h-full object-cover"
+                      />
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                          ✓
+                        </div>
+                      )}
+                      {hasGenerated && (
+                        <Badge className="absolute bottom-1 left-1 text-[10px] bg-green-600">
+                          Généré
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="p-2 space-y-1 bg-muted/30">
+                      <div className="flex items-start gap-1">
+                        <span className="text-[10px] text-muted-foreground font-medium shrink-0">T:</span>
+                        <span className={`text-[11px] truncate ${hasTitle ? 'text-foreground' : 'text-muted-foreground italic'}`}>
+                          {hasTitle ? item.title : 'Aucun titre'}
+                        </span>
                       </div>
-                    )}
-                    {hasGenerated && (
-                      <Badge className="absolute bottom-1 left-1 text-[10px] bg-green-600">
-                        Généré
-                      </Badge>
-                    )}
+                      <div className="flex items-start gap-1">
+                        <span className="text-[10px] text-muted-foreground font-medium shrink-0">A:</span>
+                        <span className={`text-[11px] truncate ${hasAlt ? 'text-foreground' : 'text-muted-foreground italic'}`}>
+                          {hasAlt ? item.altText : 'Aucun alt'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
