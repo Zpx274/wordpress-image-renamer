@@ -118,7 +118,7 @@ export function ElementorReplacer({ site, uploadedImages }: ElementorReplacerPro
       console.log('Replace response:', data);
 
       if (data.success) {
-        setSuccessMessage(`Image remplacee avec succes ! Rechargez la page Elementor pour voir le changement.`);
+        setSuccessMessage(`Image remplacee ! Pour voir le changement: Elementor → Outils → Regenerate CSS & Data`);
         // Update the widget's current URL in state
         setPageWidgets((prev) => ({
           ...prev,
@@ -144,17 +144,21 @@ export function ElementorReplacer({ site, uploadedImages }: ElementorReplacerPro
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Remplacer dans Elementor</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-lg">Remplacer dans Elementor</CardTitle>
+          <Badge variant="outline" className="text-orange-600 border-orange-600">BETA</Badge>
+        </div>
         <CardDescription>
           Remplacez des images existantes dans vos pages Elementor
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Info about plugin requirement */}
+        {/* Info about beta + plugin requirement */}
         <Alert>
-          <AlertDescription className="text-xs text-muted-foreground">
-            Pour que le remplacement fonctionne, installez le plugin <strong>image-renamer-helper.php</strong> sur WordPress
-            (dossier wordpress-plugin/ du projet).
+          <AlertDescription className="text-xs text-muted-foreground space-y-1">
+            <p><strong>Fonctionnalite en beta</strong> - Le remplacement modifie les donnees Elementor mais necessite parfois un clear cache manuel.</p>
+            <p>Apres remplacement : <strong>WordPress Admin → Elementor → Outils → Regenerate CSS & Data</strong></p>
+            <p className="text-muted-foreground/70">Requiert le plugin image-renamer-helper.php (dossier wordpress-plugin/)</p>
           </AlertDescription>
         </Alert>
 
