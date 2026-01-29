@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { WordPressSite } from '@/types';
 import { useCahierStore } from '@/lib/stores/cahier-store';
 
@@ -31,6 +32,7 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(24);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -45,7 +47,7 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
   const { getCahier } = useCahierStore();
   const cahier = getCahier(site.id);
 
-  const fetchMedia = async (pageNum: number = 1) => {
+  const fetchMedia = async (pageNum: number = 1, itemsPerPage: number = perPage) => {
     setIsLoading(true);
     setError(null);
 
@@ -53,7 +55,7 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
       const params = new URLSearchParams({
         siteUrl: site.url,
         page: pageNum.toString(),
-        perPage: '24',
+        perPage: itemsPerPage.toString(),
       });
 
       if (site.jwtToken) {
@@ -414,26 +416,49 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
             </div>
 
             {/* Pagination */}
-            <div className="flex justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchMedia(page - 1)}
-                disabled={page <= 1 || isLoading}
-              >
-                Précédent
-              </Button>
-              <span className="flex items-center text-sm">
-                Page {page} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchMedia(page + 1)}
-                disabled={page >= totalPages || isLoading}
-              >
-                Suivant
-              </Button>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Afficher :</span>
+                <Select
+                  value={perPage.toString()}
+                  onValueChange={(value) => {
+                    const newPerPage = parseInt(value);
+                    setPerPage(newPerPage);
+                    fetchMedia(1, newPerPage);
+                  }}
+                >
+                  <SelectTrigger className="w-20 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="12">12</SelectItem>
+                    <SelectItem value="24">24</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchMedia(page - 1)}
+                  disabled={page <= 1 || isLoading}
+                >
+                  Précédent
+                </Button>
+                <span className="flex items-center text-sm">
+                  Page {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchMedia(page + 1)}
+                  disabled={page >= totalPages || isLoading}
+                >
+                  Suivant
+                </Button>
+              </div>
             </div>
 
             {/* Generate button */}
