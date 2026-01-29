@@ -41,14 +41,34 @@ function getMediaType(mimeType: string): 'image/jpeg' | 'image/png' | 'image/gif
   return 'image/jpeg'; // Default fallback
 }
 
+async function fetchImageAsBase64(imageUrl: string): Promise<{ base64: string; mimeType: string } | null> {
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.warn('Failed to fetch image:', response.status);
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+    return { base64, mimeType: contentType };
+  } catch (error) {
+    console.warn('Error fetching image:', error);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { context, existingNames = [], imageBase64, mimeType } = body as {
+    const { context, existingNames = [], imageBase64, mimeType, imageUrl } = body as {
       context: RenameContext;
       existingNames: string[];
       imageBase64?: string;
       mimeType?: string;
+      imageUrl?: string;
     };
 
     if (!context.pageTitle && !context.pageSlug) {
@@ -58,7 +78,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const hasImage = imageBase64 && mimeType;
+    // Try to get image: either from base64 directly or fetch from URL
+    let finalBase64 = imageBase64;
+    let finalMimeType = mimeType;
+
+    if (!finalBase64 && imageUrl) {
+      const fetched = await fetchImageAsBase64(imageUrl);
+      if (fetched) {
+        finalBase64 = fetched.base64;
+        finalMimeType = fetched.mimeType;
+      }
+    }
+
+    const hasImage = finalBase64 && finalMimeType;
 
     const prompt = `Tu es un expert SEO spécialisé dans le nommage de fichiers images et la rédaction de textes alternatifs pour le référencement.
 
@@ -109,8 +141,8 @@ Réponds UNIQUEMENT au format JSON suivant, sans autre texte :
         type: 'image',
         source: {
           type: 'base64',
-          media_type: getMediaType(mimeType!),
-          data: imageBase64!,
+          media_type: getMediaType(finalMimeType!),
+          data: finalBase64!,
         },
       });
     }

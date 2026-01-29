@@ -115,22 +115,6 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
       setProcessProgress({ current: i + 1, total: selected.length });
 
       try {
-        // Fetch image and convert to base64 for vision analysis
-        let imageBase64: string | undefined;
-        let mimeType: string | undefined;
-
-        try {
-          const imgResponse = await fetch(item.url);
-          const blob = await imgResponse.blob();
-
-          // Compress if needed
-          const compressedBase64 = await compressImageToBase64(blob);
-          imageBase64 = compressedBase64.base64;
-          mimeType = compressedBase64.mimeType;
-        } catch (imgError) {
-          console.warn('Could not load image for vision:', imgError);
-        }
-
         const context = {
           pageTitle: item.title || 'Image WordPress',
           pageSlug: '',
@@ -141,10 +125,11 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
           originalFileName: item.url.split('/').pop() || '',
         };
 
+        // Pass imageUrl to let the server fetch it (avoids CORS issues)
         const response = await fetch('/api/ai/rename', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ context, existingNames: [], imageBase64, mimeType }),
+          body: JSON.stringify({ context, existingNames: [], imageUrl: item.url }),
         });
 
         if (!response.ok) {
@@ -434,39 +419,3 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
   );
 }
 
-// Helper to compress image for vision API
-async function compressImageToBase64(blob: Blob): Promise<{ base64: string; mimeType: string }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      let { width, height } = img;
-      const maxDimension = 1024;
-
-      if (width > maxDimension || height > maxDimension) {
-        if (width > height) {
-          height = Math.round((height * maxDimension) / width);
-          width = maxDimension;
-        } else {
-          width = Math.round((width * maxDimension) / height);
-          height = maxDimension;
-        }
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Could not get canvas context'));
-        return;
-      }
-      ctx.drawImage(img, 0, 0, width, height);
-
-      const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-      resolve({ base64, mimeType: 'image/jpeg' });
-    };
-    img.onerror = () => reject(new Error('Could not load image'));
-    img.crossOrigin = 'anonymous';
-    img.src = URL.createObjectURL(blob);
-  });
-}
