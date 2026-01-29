@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CahierDesCharges } from '@/types';
 import { parseCahierDesCharges } from '@/lib/cahier-parser';
 
@@ -17,6 +18,9 @@ export function CahierViewer({ initialText = '', onSave }: CahierViewerProps) {
   const [rawText, setRawText] = useState(initialText);
   const [parsedCahier, setParsedCahier] = useState<Partial<CahierDesCharges>>({});
   const [isEditing, setIsEditing] = useState(!initialText);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (rawText.trim()) {
@@ -26,6 +30,40 @@ export function CahierViewer({ initialText = '', onSave }: CahierViewerProps) {
       setParsedCahier({});
     }
   }, [rawText]);
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoadingPdf(true);
+    setPdfError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/pdf', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setRawText(data.text);
+      } else {
+        setPdfError(data.error || 'Erreur lors de la lecture du PDF');
+      }
+    } catch (err) {
+      setPdfError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setIsLoadingPdf(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleSave = () => {
     onSave?.(parsedCahier, rawText);
@@ -43,10 +81,36 @@ export function CahierViewer({ initialText = '', onSave }: CahierViewerProps) {
         <CardHeader>
           <CardTitle className="text-lg">Cahier des charges</CardTitle>
           <CardDescription>
-            Collez le texte du cahier des charges pour extraire les informations SEO
+            Importez un PDF ou collez le texte du cahier des charges
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* PDF Upload */}
+          <div className="flex items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handlePdfUpload}
+              className="hidden"
+              id="pdf-upload"
+            />
+            <Button
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoadingPdf}
+            >
+              {isLoadingPdf ? 'Extraction...' : 'Importer un PDF'}
+            </Button>
+            <span className="text-sm text-muted-foreground">ou collez le texte ci-dessous</span>
+          </div>
+
+          {pdfError && (
+            <Alert variant="destructive">
+              <AlertDescription>{pdfError}</AlertDescription>
+            </Alert>
+          )}
+
           <textarea
             className="w-full min-h-64 p-3 border rounded-md font-mono text-sm resize-y"
             placeholder={`Exemple de format:
