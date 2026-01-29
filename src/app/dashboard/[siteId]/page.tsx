@@ -13,9 +13,10 @@ import { PageList } from '@/components/page-list';
 import { CahierViewer } from '@/components/cahier-viewer';
 import { ImageManager } from '@/components/image-manager';
 import { WorkflowCard } from '@/components/workflow-card';
+import { MediaLibrary } from '@/components/media-library';
 import { useUploadStore } from '@/lib/stores/upload-store';
 
-type Tab = 'overview' | 'pages' | 'cahier' | 'upload';
+type Tab = 'overview' | 'pages' | 'cahier' | 'upload' | 'mediatheque';
 
 export default function SiteDashboard() {
   const params = useParams();
@@ -108,6 +109,7 @@ export default function SiteDashboard() {
               { id: 'pages', label: 'Pages' },
               { id: 'cahier', label: 'Cahier des charges' },
               { id: 'upload', label: 'Upload' },
+              { id: 'mediatheque', label: 'Mediatheque' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -181,6 +183,17 @@ export default function SiteDashboard() {
                   )}
                 </CardContent>
               </Card>
+
+              <Card
+                className="hover:bg-accent/50 transition-colors cursor-pointer"
+                onClick={() => setActiveTab('mediatheque')}
+              >
+                <CardHeader className="pb-2">
+                  <div className="text-3xl mb-2">🖼️</div>
+                  <CardTitle className="text-lg">Mediatheque</CardTitle>
+                  <CardDescription>Optimiser les images existantes</CardDescription>
+                </CardHeader>
+              </Card>
             </div>
 
             {/* Workflow */}
@@ -202,6 +215,8 @@ export default function SiteDashboard() {
         )}
 
         {activeTab === 'upload' && <ImageManager site={site} />}
+
+        {activeTab === 'mediatheque' && <MediaLibrary site={site} />}
       </main>
     </div>
   );
