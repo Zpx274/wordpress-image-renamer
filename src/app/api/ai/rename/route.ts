@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { RenameContext } from '@/types';
 
-const anthropic = new Anthropic();
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 function ensureUniqueName(baseName: string, existingNames: string[]): string {
   if (!existingNames.includes(baseName)) {
