@@ -190,7 +190,7 @@ async function clearElementorCache(
   currentPageSettings?: string
 ): Promise<void> {
   try {
-    // Update meta fields to force Elementor cache regeneration
+    // Method 1: Update meta fields to force Elementor cache regeneration
     const cacheBreakMeta = {
       meta: {
         _elementor_css: '', // Clear generated CSS cache
@@ -209,7 +209,29 @@ async function clearElementorCache(
       },
       body: JSON.stringify(cacheBreakMeta),
     });
-    console.log('Elementor cache cleared for', endpoint, pageId);
+    console.log('Elementor meta cache cleared for', endpoint, pageId);
+
+    // Method 2: Call our plugin endpoint to regenerate CSS via Elementor API
+    try {
+      const pluginResponse = await fetch(`${baseUrl}/wp-json/image-renamer/v1/clear-cache`, {
+        method: 'POST',
+        headers: {
+          Authorization: authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ post_id: pageId }),
+      });
+
+      if (pluginResponse.ok) {
+        const result = await pluginResponse.json();
+        console.log('Elementor CSS regenerated via plugin:', result);
+      } else {
+        console.log('Plugin cache clear not available (plugin may not be installed)');
+      }
+    } catch {
+      // Plugin endpoint not available, that's OK
+      console.log('Plugin endpoint not available, manual cache clear may be needed');
+    }
   } catch (error) {
     console.error('Failed to clear Elementor cache:', error);
     // Non-fatal error, continue
