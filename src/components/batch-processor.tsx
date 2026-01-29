@@ -21,6 +21,71 @@ interface ProcessingStatus {
   errors: string[];
 }
 
+// Helper to compress image for upload (returns File)
+// Vercel has 4.5MB limit on free tier
+async function compressImageForUpload(file: File, maxSizeBytes: number = 4 * 1024 * 1024): Promise<File> {
+  // If file is already small enough, return as-is
+  if (file.size <= maxSizeBytes) {
+    return file;
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      const maxDimension = 2048; // Max dimension for upload
+
+      // Scale down if too large
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Try different quality levels
+      let quality = 0.85;
+      const tryCompress = () => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Compression failed'));
+              return;
+            }
+            if (blob.size <= maxSizeBytes || quality <= 0.3) {
+              // Create new File from blob
+              const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+              console.log(`Compressed ${file.name}: ${(file.size/1024/1024).toFixed(1)}MB -> ${(blob.size/1024/1024).toFixed(1)}MB`);
+              resolve(compressedFile);
+            } else {
+              quality -= 0.1;
+              tryCompress();
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      tryCompress();
+    };
+    img.onerror = () => reject(new Error('Could not load image for compression'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 // Helper to compress and convert image to base64
 // Claude vision API has a 5MB limit, so we resize large images
 async function compressImageToBase64(file: File, maxSizeBytes: number = 4 * 1024 * 1024): Promise<{ base64: string; mimeType: string }> {
@@ -189,8 +254,18 @@ export function BatchProcessor({ site }: BatchProcessorProps) {
       try {
         updateImage(site.id, image.id, { status: 'processing' });
 
+        // Compress image if too large for Vercel (4.5MB limit)
+        let fileToUpload = image.file;
+        if (image.file.size > 4 * 1024 * 1024) {
+          try {
+            fileToUpload = await compressImageForUpload(image.file);
+          } catch (compressError) {
+            console.warn('Compression failed, trying original:', compressError);
+          }
+        }
+
         const formData = new FormData();
-        formData.append('file', image.file);
+        formData.append('file', fileToUpload);
         formData.append('seoName', image.generatedName!);
         formData.append('siteUrl', site.url);
         if (image.generatedAltText) {
