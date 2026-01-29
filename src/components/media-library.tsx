@@ -230,6 +230,61 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
     }));
   };
 
+  const removeFromGenerated = (mediaId: number) => {
+    setGeneratedData(prev => {
+      const newData = { ...prev };
+      delete newData[mediaId];
+      return newData;
+    });
+  };
+
+  const [regeneratingId, setRegeneratingId] = useState<number | null>(null);
+
+  const regenerateSingle = async (mediaId: number) => {
+    const item = media.find(m => m.id === mediaId);
+    if (!item) return;
+
+    setRegeneratingId(mediaId);
+
+    try {
+      const context = {
+        pageTitle: item.title || 'Image WordPress',
+        pageSlug: '',
+        nomEntreprise: cahier?.parsed?.nomEntreprise || '',
+        secteurActivite: cahier?.parsed?.secteurActivite || '',
+        villesPrincipales: cahier?.parsed?.villesChoisies || [],
+        servicePrincipal: cahier?.parsed?.servicePrincipal || '',
+        originalFileName: item.url.split('/').pop() || '',
+      };
+
+      const response = await fetch('/api/ai/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context, existingNames: [], imageUrl: item.url }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setGeneratedData(prev => ({
+          ...prev,
+          [mediaId]: {
+            title: data.suggestedName || '',
+            altText: data.altText || '',
+          },
+        }));
+      }
+    } catch (err) {
+      console.error('Regenerate error:', err);
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -373,41 +428,70 @@ export function MediaLibrary({ site }: MediaLibraryProps) {
             {/* Preview and edit generated data */}
             {Object.keys(generatedData).length > 0 && (
               <div className="space-y-4">
-                <h3 className="font-medium">Aperçu des modifications :</h3>
+                <h3 className="font-medium">Aperçu des modifications ({Object.keys(generatedData).length}) :</h3>
                 <div className="space-y-3 max-h-80 overflow-y-auto">
                   {Object.entries(generatedData).map(([mediaId, data]) => {
                     const item = media.find(m => m.id === parseInt(mediaId));
+                    const isRegenerating = regeneratingId === parseInt(mediaId);
                     return (
                       <div key={mediaId} className="flex gap-3 p-2 border rounded-lg">
                         <img
                           src={item?.thumbnail}
                           alt=""
-                          className="w-16 h-16 object-cover rounded"
+                          className="w-16 h-16 object-cover rounded flex-shrink-0"
                         />
-                        <div className="flex-1 space-y-2">
+                        <div className="flex-1 space-y-2 min-w-0">
                           <Input
                             value={data.title}
                             onChange={(e) => updateGeneratedField(parseInt(mediaId), 'title', e.target.value)}
                             placeholder="Titre"
                             className="h-8 text-sm"
+                            disabled={isRegenerating}
                           />
                           <Input
                             value={data.altText}
                             onChange={(e) => updateGeneratedField(parseInt(mediaId), 'altText', e.target.value)}
                             placeholder="Alt text"
                             className="h-8 text-sm"
+                            disabled={isRegenerating}
                           />
+                        </div>
+                        <div className="flex flex-col gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                            onClick={() => regenerateSingle(parseInt(mediaId))}
+                            disabled={isRegenerating}
+                            title="Regénérer"
+                          >
+                            {isRegenerating ? (
+                              <span className="animate-spin">↻</span>
+                            ) : (
+                              '↻'
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeFromGenerated(parseInt(mediaId))}
+                            disabled={isRegenerating}
+                            title="Retirer"
+                          >
+                            ✕
+                          </Button>
                         </div>
                       </div>
                     );
                   })}
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={updateMedia} disabled={isProcessing} className="flex-1">
+                  <Button onClick={updateMedia} disabled={isProcessing || regeneratingId !== null} className="flex-1">
                     Appliquer sur WordPress ({Object.keys(generatedData).length})
                   </Button>
                   <Button variant="outline" onClick={() => setGeneratedData({})}>
-                    Annuler
+                    Tout annuler
                   </Button>
                 </div>
               </div>

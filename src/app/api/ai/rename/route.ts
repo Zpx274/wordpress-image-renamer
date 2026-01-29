@@ -175,7 +175,13 @@ Réponds UNIQUEMENT au format JSON suivant, sans autre texte :
     let altText: string;
 
     try {
-      const parsed = JSON.parse(responseContent.text.trim());
+      // Clean up response - remove markdown code blocks if present
+      let jsonText = responseContent.text.trim();
+
+      // Remove ```json and ``` markers
+      jsonText = jsonText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '');
+
+      const parsed = JSON.parse(jsonText);
       filename = parsed.filename || '';
       altText = parsed.altText || '';
     } catch {
