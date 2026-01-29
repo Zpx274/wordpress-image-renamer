@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { CahierDesCharges } from '@/types';
 import { parseCahierDesCharges } from '@/lib/cahier-parser';
 
@@ -100,10 +101,21 @@ export function CahierViewer({ initialText = '', onSave }: CahierViewerProps) {
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoadingPdf}
             >
-              {isLoadingPdf ? 'Extraction...' : 'Importer un PDF'}
+              Importer un PDF
             </Button>
             <span className="text-sm text-muted-foreground">ou collez le texte ci-dessous</span>
           </div>
+
+          {isLoadingPdf && (
+            <div className="space-y-2 p-4 border rounded-lg bg-muted/30">
+              <div className="flex items-center gap-2">
+                <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                <span className="text-sm font-medium">Analyse du PDF en cours...</span>
+              </div>
+              <Progress value={66} className="h-2" />
+              <p className="text-xs text-muted-foreground">Claude lit et extrait le contenu du document</p>
+            </div>
+          )}
 
           {pdfError && (
             <Alert variant="destructive">
