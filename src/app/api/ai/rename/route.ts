@@ -154,7 +154,7 @@ Réponds UNIQUEMENT au format JSON suivant, sans autre texte :
     });
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-20250414',
       max_tokens: 200,
       messages: [
         {
